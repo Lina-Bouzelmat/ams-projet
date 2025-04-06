@@ -1,0 +1,9 @@
+ ALERTE AMS - SITUATION DE CRISE 
+
+Mesures critiques détectées :
+
+- Utilisation CPU : {{cpu}}%
+- Utilisation RAM : {{ram}}%
+- Date et heure : {{datetime}}
+
+Petit conseil faut aller voir .
