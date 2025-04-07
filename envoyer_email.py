@@ -1,14 +1,22 @@
 import smtplib
+import ssl
+import certifi
 import sqlite3
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
-# === CONFIGURATION ===
-SMTP_SERVER = "partage.univ-avignon.fr"
-SMTP_PORT = 465
-EMAIL_FROM = "lina.bouzelmat@alumni.univ-avignon.fr"
-EMAIL_TO = "lina.bouzelmat@alumni.univ-avignon.fr"
-EMAIL_PASSWORD = "TON_MOT_DE_PASSE_ICI"  # remplace par ton mot de passe ENT
+# Configuration du serveur SMTP
+port = 465
+smtp_server = "partage.univ-avignon.fr"
+sender_email = "lina.bouzelmat@alumni.univ-avignon.fr"
+receiver_email = "lina.bouzelmat@alumni.univ-avignon.fr"
+
+try:
+    from config import SMTP_PASSWORD
+    password = SMTP_PASSWORD
+except ImportError:
+    password = input("Entrez votre mot de passe SMTP: ")
 
 def recuperer_derniere_mesure(db_path):
     connexion = sqlite3.connect(db_path)
@@ -27,23 +35,22 @@ def generer_message(cpu, ram, template_path):
     contenu = contenu.replace("{{datetime}}", now)
     return contenu
 
-def envoyer_email(contenu, destinataire):
-    msg = MIMEText(contenu)
-    msg["Subject"] = "Alerte AMS - Situation de crise en cours"
-    msg["From"] = EMAIL_FROM
-    msg["To"] = destinataire
+def envoyer_email(contenu):
+    message = MIMEMultipart()
+    message["Subject"] = "Alerte AMS - Situation de crise en cours"
+    message["From"] = sender_email
+    message["To"] = receiver_email
+    message.attach(MIMEText(contenu, "plain"))
 
-    with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-        server.login(EMAIL_FROM, EMAIL_PASSWORD)
-        server.send_message(msg)
+    context = ssl.create_default_context(cafile=certifi.where())
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message.as_string())
+        print("MAIL ENVOYÉEEE")
 
 if __name__ == "__main__":
     db_path = "/home/uapv2202351/data/systeme_monitor.db"
     template_path = "/home/uapv2202351/scripts/template_email.txt"
-    destinataire = EMAIL_TO
-
     cpu, ram = recuperer_derniere_mesure(db_path)
     contenu = generer_message(cpu, ram, template_path)
-    envoyer_email(contenu, destinataire)
-
-    print(" MAIL ENVOYÉ")
+    envoyer_email(contenu)
